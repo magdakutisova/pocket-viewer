@@ -1,15 +1,16 @@
 import { create } from "zustand";
 
 interface FilterStore {
-  status: "all" | "read" | "unread";
+  /** The Category being browsed, or null for the whole collection. */
+  category: string | null;
   search: string;
-  setStatus: (status: "all" | "read" | "unread") => void;
+  setCategory: (category: string | null) => void;
   setSearch: (term: string) => void;
 }
 
 export const useFilterStore = create<FilterStore>((set) => ({
-  status: "all",
+  category: null,
   search: "",
-  setStatus: (status) => set({ status }),
+  setCategory: (category) => set({ category }),
   setSearch: (term) => set({ search: term }),
 }));

@@ -1,25 +1,26 @@
-import { ArticleList } from "../components/ArticleList";
+import { RecipeList } from "../components/RecipeList";
+import { useCollection } from "../hooks/useCollection";
 import { useFilterStore } from "../hooks/useFilterStore";
-import { usePocketData } from "../hooks/usePocketData";
 
 export function Home() {
-    const { articles, loading } = usePocketData();
-    const { status, search, setStatus, setSearch } = useFilterStore();
+    const { recipes, categories } = useCollection();
+    const { category, search, setCategory, setSearch } = useFilterStore();
 
-    if (loading) return <p>Načítám články...</p>;
-
-    const filtered = articles.filter((article) => {
-        const matchesStatus = status === "all" ? true : article.status === status;
-        const matchesSearch = article.title.toLowerCase().includes(search.toLowerCase())
-            || article.tags.some((tag) =>
-                tag.toLowerCase().includes(search.toLowerCase())
-            );
-        return matchesStatus && matchesSearch;
+    const searchTerm = search.toLowerCase();
+    const filtered = recipes.filter((recipe) => {
+        const matchesCategory = category === null || recipe.categories.includes(category);
+        const matchesSearch = recipe.name.toLowerCase().includes(searchTerm)
+            || recipe.categories.some((name) => name.toLowerCase().includes(searchTerm));
+        return matchesCategory && matchesSearch;
     });
+
+    const categoryNames = categories
+        .map((category) => category.name)
+        .sort((a, b) => a.localeCompare(b, "cs"));
 
     return (
         <div className="max-w-3xl mx-auto p-6">
-            <h1 className="text-2xl font-semibold mb-4">📚 Moje Pocket data</h1>
+            <h1 className="text-2xl font-semibold mb-4">📚 Moje recepty</h1>
 
             <div className="flex gap-4 mb-6 items-center">
                 <input
@@ -30,17 +31,19 @@ export function Home() {
                     className="border rounded px-3 py-1 w-full"
                 />
                 <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as "all" | "read" | "unread")}
+                    value={category ?? ""}
+                    onChange={(e) => setCategory(e.target.value === "" ? null : e.target.value)}
                     className="border rounded px-3 py-1"
                 >
-                    <option value="all">Všechny</option>
-                    <option value="read">Přečtené</option>
-                    <option value="unread">Nepřečtené</option>
+                    <option value="">Všechny kategorie</option>
+                    {categoryNames.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                    ))}
                 </select>
             </div>
 
-            <ArticleList articles={filtered} />
+            {/* Keyed on the criteria so changing them starts again at the first page. */}
+            <RecipeList key={`${category}|${search}`} recipes={filtered} />
         </div>
     );
 }
