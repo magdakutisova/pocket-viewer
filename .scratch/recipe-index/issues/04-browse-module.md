@@ -24,3 +24,10 @@ The read/unread control is removed rather than repaired. It filters on a field t
 - [ ] Each Category shows how many recipes it holds
 - [ ] The read/unread control is gone
 - [ ] The list is usable on a narrow phone-width viewport without horizontal scrolling
+
+## Comments
+
+Two of these landed early, by hand, while ticket 01 was being checked in the browser:
+
+- The Category select has a **Bez kategorie** option, so the 96 unfiled recipes are already reachable. It is a third state on `CategoryFilter` in `src/hooks/useFilterStore.ts` (`all` / `named` / `uncategorised`), filtered in `Home.tsx` — no tests, because the filtering still lives in the component. Fold that shape into the browse module rather than reinventing it, and cover it there.
+- `RecipeCard` had light-mode greys on the dark default background; it now carries `dark:` variants. Worth a look when the card is restyled for phone width.

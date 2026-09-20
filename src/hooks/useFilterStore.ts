@@ -1,15 +1,20 @@
 import { create } from "zustand";
 
+/** What the cook is browsing: everything, one Category, or the unfiled recipes. */
+export type CategoryFilter =
+  | { kind: "all" }
+  | { kind: "named"; name: string }
+  | { kind: "uncategorised" };
+
 interface FilterStore {
-  /** The Category being browsed, or null for the whole collection. */
-  category: string | null;
+  category: CategoryFilter;
   search: string;
-  setCategory: (category: string | null) => void;
+  setCategory: (category: CategoryFilter) => void;
   setSearch: (term: string) => void;
 }
 
 export const useFilterStore = create<FilterStore>((set) => ({
-  category: null,
+  category: { kind: "all" },
   search: "",
   setCategory: (category) => set({ category }),
   setSearch: (term) => set({ search: term }),

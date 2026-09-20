@@ -1,6 +1,39 @@
 import { RecipeList } from "../components/RecipeList";
 import { useCollection } from "../hooks/useCollection";
-import { useFilterStore } from "../hooks/useFilterStore";
+import { useFilterStore, type CategoryFilter } from "../hooks/useFilterStore";
+
+/** Select values that stand for a filter rather than for a Category name. */
+const ALL = "";
+const UNCATEGORISED = "__bez-kategorie__";
+
+function toSelectValue(category: CategoryFilter): string {
+    switch (category.kind) {
+        case "all":
+            return ALL;
+        case "uncategorised":
+            return UNCATEGORISED;
+        case "named":
+            return category.name;
+    }
+}
+
+function fromSelectValue(value: string): CategoryFilter {
+    if (value === ALL) return { kind: "all" };
+    if (value === UNCATEGORISED) return { kind: "uncategorised" };
+
+    return { kind: "named", name: value };
+}
+
+function matchesCategory(recipeCategories: string[], category: CategoryFilter): boolean {
+    switch (category.kind) {
+        case "all":
+            return true;
+        case "uncategorised":
+            return recipeCategories.length === 0;
+        case "named":
+            return recipeCategories.includes(category.name);
+    }
+}
 
 export function Home() {
     const { recipes, categories } = useCollection();
@@ -8,10 +41,9 @@ export function Home() {
 
     const searchTerm = search.toLowerCase();
     const filtered = recipes.filter((recipe) => {
-        const matchesCategory = category === null || recipe.categories.includes(category);
         const matchesSearch = recipe.name.toLowerCase().includes(searchTerm)
             || recipe.categories.some((name) => name.toLowerCase().includes(searchTerm));
-        return matchesCategory && matchesSearch;
+        return matchesCategory(recipe.categories, category) && matchesSearch;
     });
 
     const categoryNames = categories
@@ -31,11 +63,12 @@ export function Home() {
                     className="border rounded px-3 py-1 w-full"
                 />
                 <select
-                    value={category ?? ""}
-                    onChange={(e) => setCategory(e.target.value === "" ? null : e.target.value)}
+                    value={toSelectValue(category)}
+                    onChange={(e) => setCategory(fromSelectValue(e.target.value))}
                     className="border rounded px-3 py-1"
                 >
-                    <option value="">Všechny kategorie</option>
+                    <option value={ALL}>Všechny kategorie</option>
+                    <option value={UNCATEGORISED}>Bez kategorie</option>
                     {categoryNames.map((name) => (
                         <option key={name} value={name}>{name}</option>
                     ))}
@@ -43,7 +76,7 @@ export function Home() {
             </div>
 
             {/* Keyed on the criteria so changing them starts again at the first page. */}
-            <RecipeList key={`${category}|${search}`} recipes={filtered} />
+            <RecipeList key={`${toSelectValue(category)}|${search}`} recipes={filtered} />
         </div>
     );
 }
