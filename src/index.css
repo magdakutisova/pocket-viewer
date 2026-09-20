@@ -32,6 +32,12 @@ body {
   min-height: 100vh;
 }
 
+/* body is a flex container, so #root shrinks to its content and nothing inside
+   it can centre itself against the viewport. Let it fill the width instead. */
+#root {
+  width: 100%;
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
