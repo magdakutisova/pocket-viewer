@@ -148,6 +148,22 @@ describe("recipes Pocket never captured a name for", () => {
         expect(recipes[0].name).toBe("Archives");
     });
 
+    it("drops a post id from the front of a slug, but keeps a number that is part of the name", () => {
+        const withId = "https://www.seriouseats.com/recipes/19511-leftover-turkey-halal-cart-style.html";
+        const withCount = "https://www.buzzfeed.com/recipes/7-layer-bean-dip";
+        const { recipes } = parseExport(
+            exportOf(
+                `${withId},${withId},1467204139,hlavní jídla,unread`,
+                `${withCount},${withCount},1467204139,svačiny a chuťovky,unread`,
+            ),
+        );
+
+        expect(recipes.map((recipe) => recipe.name)).toEqual([
+            "Leftover turkey halal cart style",
+            "7 layer bean dip",
+        ]);
+    });
+
     it("falls back to the host when the URL carries no path to name it by", () => {
         const url = "http://gordon.ura.cz/?p=2097";
         const { recipes } = parseExport(exportOf(`${url},${url},1467204139,hlavní jídla,unread`));

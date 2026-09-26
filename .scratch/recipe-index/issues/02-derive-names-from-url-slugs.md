@@ -16,7 +16,7 @@ Czech slugs arrive without diacritics, so `svickova-na-smetane` becomes `Svickov
 - [x] All 603 affected recipes end up with a name that is not a URL, and none is left blank
 - [x] A test covers a Czech slug and asserts the diacritic-free result, documenting it as expected
 - [x] Derivation is part of the same pure module as parsing, with no network access
-- [ ] Running the app shows names instead of URLs throughout the list
+- [x] Running the app shows names instead of URLs throughout the list
 
 ## Comments
 
@@ -30,4 +30,4 @@ Three judgement calls worth knowing about:
 - **A URL with no path falls back to the host.** `gordon.ura.cz/?p=2097` would name nothing at all. No row of the current export reaches this (the one path-less row has a real title), but the export must never be able to kill the import — the spec is explicit that no row is filtered out.
 - **Percent-encoded segments are decoded**, which affects exactly one row.
 
-Not verified yet: the last checkbox. The app now sits behind login, and confirming the list reads as names needs a signed-in look.
+**Verified in the signed-in app.** The list reads as names throughout. Two rows showed a leftover post id — `19511 leftover turkey recipe…` and `20966 cauliflower mashed potatoes recipe` — which only looking at the running list surfaced; a leading run of four or more digits is now dropped. Shorter leading numbers are kept, because 29 of the 31 names that start with a number need it: `7 layer bean dip`, `100 calorie chocolate cake`, `3 ingredient strawberry banana popsicles`.

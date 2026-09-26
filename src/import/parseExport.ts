@@ -60,7 +60,11 @@ function parseName(title: string, url: string): string {
         ? address.hostname.replace(/^www\./, "")
         : withoutFileExtension(fromPath);
 
-    const words = slug.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+    // A long number in front of a slug is a post id. A short one is part of
+    // the name — "7 layer bean dip", "100 calorie chocolate cake".
+    const withoutPostId = slug.replace(/^\d{4,}[-_]/, "");
+
+    const words = withoutPostId.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
     if (words === "") return title;
 
     return words.charAt(0).toUpperCase() + words.slice(1);
