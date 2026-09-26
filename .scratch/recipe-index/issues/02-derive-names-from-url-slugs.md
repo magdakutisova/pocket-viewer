@@ -8,12 +8,26 @@ Czech slugs arrive without diacritics, so `svickova-na-smetane` becomes `Svickov
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A name is derived only where the export's title equals its URL; recipes with a real title are left untouched
-- [ ] File extensions such as `.html`, `.htm`, `.php` and `.aspx` are stripped from the derived name
-- [ ] Hyphens and underscores become spaces, and the result is capitalised
-- [ ] All 603 affected recipes end up with a name that is not a URL, and none is left blank
-- [ ] A test covers a Czech slug and asserts the diacritic-free result, documenting it as expected
-- [ ] Derivation is part of the same pure module as parsing, with no network access
+- [x] A name is derived only where the export's title equals its URL; recipes with a real title are left untouched
+- [x] File extensions such as `.html`, `.htm`, `.php` and `.aspx` are stripped from the derived name
+- [x] Hyphens and underscores become spaces, and the result is capitalised
+- [x] All 603 affected recipes end up with a name that is not a URL, and none is left blank
+- [x] A test covers a Czech slug and asserts the diacritic-free result, documenting it as expected
+- [x] Derivation is part of the same pure module as parsing, with no network access
 - [ ] Running the app shows names instead of URLs throughout the list
+
+## Comments
+
+**Implemented** in `parseName` inside `src/import/parseExport.ts`, the same pure module as the rest of parsing.
+
+The rule is the ticket's: derive only where the title repeats the URL, take the last meaningful path segment, drop the file extension, turn hyphens and underscores into spaces, capitalise. Asserted against the real export — all 603 get a name that is neither blank nor a URL, and no recipe anywhere in the collection still shows a URL where a name belongs.
+
+Three judgement calls worth knowing about:
+
+- **"Meaningful" excludes a segment that is only digits.** `thebrewerandthebaker.com/archives/14350` would otherwise be named `14350`; it is named `Archives` instead. Neither is a recipe name — this is the one URL of the 603 with no usable slug. A word scans better than an id, and the rule protects future imports of `/p/12345` URLs, but it is worth overriding by hand once editing exists.
+- **A URL with no path falls back to the host.** `gordon.ura.cz/?p=2097` would name nothing at all. No row of the current export reaches this (the one path-less row has a real title), but the export must never be able to kill the import — the spec is explicit that no row is filtered out.
+- **Percent-encoded segments are decoded**, which affects exactly one row.
+
+Not verified yet: the last checkbox. The app now sits behind login, and confirming the list reads as names needs a signed-in look.

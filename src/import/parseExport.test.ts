@@ -100,3 +100,58 @@ describe("Category names with stray whitespace around the separator", () => {
         ]);
     });
 });
+
+describe("recipes Pocket never captured a name for", () => {
+    it("reads a name out of the URL when the title is only the URL again", () => {
+        const url = "http://www.101cookbooks.com/archives/skinny-omelette-recipe.html";
+        const { recipes } = parseExport(exportOf(`${url},${url},1467204139,snídaně,unread`));
+
+        expect(recipes[0].name).toBe("Skinny omelette recipe");
+    });
+
+    it("leaves a recipe that has a real name alone", () => {
+        const { recipes } = parseExport(
+            exportOf("Svíčková na smetaně,https://example.com/svickova-na-smetane,1467204139,hlavní jídla,unread"),
+        );
+
+        expect(recipes[0].name).toBe("Svíčková na smetaně");
+    });
+
+    it("derives a Czech name without its diacritics, which is expected and editable later", () => {
+        const url = "http://www.smoothcooking.cz/2015/01/svickova-na-smetane.html";
+        const { recipes } = parseExport(exportOf(`${url},${url},1467204139,hlavní jídla,unread`));
+
+        // The slug carries no diacritics, so neither can the name derived from it.
+        expect(recipes[0].name).toBe("Svickova na smetane");
+    });
+
+    it("copes with a trailing slash, underscores and other file extensions", () => {
+        const withSlash = "https://www.jamieoliver.com/recipes/asian-inspired-turkey-salad/";
+        const underscored = "https://www.simplyrecipes.com/recipes/turkey_soup_with_lemon.php";
+        const { recipes } = parseExport(
+            exportOf(
+                `${withSlash},${withSlash},1467204139,saláty,unread`,
+                `${underscored},${underscored},1467204139,polévky,unread`,
+            ),
+        );
+
+        expect(recipes.map((recipe) => recipe.name)).toEqual([
+            "Asian inspired turkey salad",
+            "Turkey soup with lemon",
+        ]);
+    });
+
+    it("skips a numeric last segment, which names nothing, for the one above it", () => {
+        const url = "http://www.thebrewerandthebaker.com/archives/14350";
+        const { recipes } = parseExport(exportOf(`${url},${url},1467204139,dezerty,unread`));
+
+        expect(recipes[0].name).toBe("Archives");
+    });
+
+    it("falls back to the host when the URL carries no path to name it by", () => {
+        const url = "http://gordon.ura.cz/?p=2097";
+        const { recipes } = parseExport(exportOf(`${url},${url},1467204139,hlavní jídla,unread`));
+
+        expect(recipes[0].name).toBe("Gordon.ura.cz");
+    });
+});

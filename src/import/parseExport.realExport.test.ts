@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import Papa from "papaparse";
 import { describe, expect, it } from "vitest";
 import { parseExport } from "./parseExport";
 
@@ -55,5 +56,35 @@ describe("the whole Pocket export", () => {
         );
 
         expect(withoutADate).toEqual([]);
+    });
+});
+
+
+/**
+ * Which rows needed a name is a fact about the export, not about the parser,
+ * so it is read straight from the file rather than inferred from the output.
+ */
+const urlsOfNamelessRows = Papa.parse<{ title: string; url: string }>(exportText, {
+    header: true,
+    skipEmptyLines: true,
+})
+    .data.filter((row) => row.title === row.url)
+    .map((row) => row.url);
+
+describe("the recipes Pocket never named", () => {
+    it("gives all 603 of them a name that is neither a URL nor blank", () => {
+        const needingAName = new Set(urlsOfNamelessRows);
+        const derived = recipes.filter((recipe) => needingAName.has(recipe.url));
+
+        expect(needingAName.size).toBe(603);
+        expect(derived).toHaveLength(603);
+        expect(derived.filter((recipe) => /^https?:\/\//i.test(recipe.name))).toEqual([]);
+        expect(derived.filter((recipe) => recipe.name.trim() === "")).toEqual([]);
+    });
+
+    it("leaves no recipe anywhere in the collection showing a URL for a name", () => {
+        const showingAUrl = recipes.filter((recipe) => /^https?:\/\//i.test(recipe.name));
+
+        expect(showingAUrl).toEqual([]);
     });
 });
