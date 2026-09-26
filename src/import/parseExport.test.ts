@@ -248,3 +248,27 @@ describe("the Sources recipes come from", () => {
         ]);
     });
 });
+
+describe("names that arrived HTML-escaped", () => {
+    it("reads the entities back as the characters they stand for", () => {
+        const { recipes } = parseExport(
+            exportOf(
+                '&quot;Nereceptová jídla&quot; - svačinky poprvé ;-),https://example.com/svacinky,1467204139,svačiny a chuťovky,unread',
+                "Tuňák &amp; ratatouille,https://example.com/tunak,1467204139,hlavní jídla,unread",
+            ),
+        );
+
+        expect(recipes.map((recipe) => recipe.name)).toEqual([
+            '"Nereceptová jídla" - svačinky poprvé ;-)',
+            "Tuňák & ratatouille",
+        ]);
+    });
+
+    it("does not decode twice, so an escaped entity survives as written", () => {
+        const { recipes } = parseExport(
+            exportOf("Recept &amp;quot;A&amp;quot;,https://example.com/a,1467204139,dezerty,unread"),
+        );
+
+        expect(recipes[0].name).toBe('Recept &quot;A&quot;');
+    });
+});

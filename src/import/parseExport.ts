@@ -33,12 +33,34 @@ function parseCategories(rawCategories: string): string[] {
         .filter((name) => name !== "");
 }
 
+const ENTITIES: Record<string, string> = {
+    "&quot;": '"',
+    "&apos;": "'",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&nbsp;": " ",
+    "&amp;": "&",
+};
+
+/**
+ * Some titles came out of Pocket HTML-escaped: `Tuňák &amp; ratatouille`. One
+ * pass over the whole string, so `&amp;quot;` decodes to `&quot;` and stops
+ * there rather than unravelling into a quotation mark.
+ */
+function decodeEntities(text: string): string {
+    return text.replace(/&(?:#(\d+)|[a-z]+);/gi, (entity, codePoint: string | undefined) => {
+        if (codePoint !== undefined) return String.fromCodePoint(Number(codePoint));
+
+        return ENTITIES[entity.toLowerCase()] ?? entity;
+    });
+}
+
 /**
  * Pocket never captured a title for some recipes and repeated the URL in its
  * place. The slug is all we have to name them by, and it is enough.
  */
 function parseName(title: string, url: string): string {
-    if (title !== url) return title;
+    if (title !== url) return decodeEntities(title);
 
     let address;
     try {

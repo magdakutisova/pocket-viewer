@@ -82,6 +82,12 @@ describe("the recipes Pocket never named", () => {
         expect(derived.filter((recipe) => recipe.name.trim() === "")).toEqual([]);
     });
 
+    it("leaves no name still carrying an HTML entity, as 32 of them did", () => {
+        const escaped = recipes.filter((recipe) => /&(quot|amp|apos|lt|gt|nbsp|#\d+);/i.test(recipe.name));
+
+        expect(escaped).toEqual([]);
+    });
+
     it("leaves no recipe anywhere in the collection showing a URL for a name", () => {
         const showingAUrl = recipes.filter((recipe) => /^https?:\/\//i.test(recipe.name));
 

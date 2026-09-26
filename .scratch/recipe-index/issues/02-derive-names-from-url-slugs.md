@@ -31,3 +31,5 @@ Three judgement calls worth knowing about:
 - **Percent-encoded segments are decoded**, which affects exactly one row.
 
 **Verified in the signed-in app.** The list reads as names throughout. Two rows showed a leftover post id — `19511 leftover turkey recipe…` and `20966 cauliflower mashed potatoes recipe` — which only looking at the running list surfaced; a leading run of four or more digits is now dropped. Shorter leading numbers are kept, because 29 of the 31 names that start with a number need it: `7 layer bean dip`, `100 calorie chocolate cake`, `3 ingredient strawberry banana popsicles`.
+
+**Follow-up, after ticket 03.** 32 names arrived HTML-escaped — `&quot;Nereceptová jídla&quot;`, `Tuňák &amp; ratatouille` — and showed the entities literally in the list. Decoded in one pass, so `&amp;quot;` becomes `&quot;` and stops there. Only `&quot;` and `&amp;` occur in this export, 60 times between them; the named entities and numeric ones are handled anyway, since the next import will not be this one.
