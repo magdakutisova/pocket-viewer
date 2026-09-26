@@ -2,6 +2,9 @@ import { RecipeList } from "../components/RecipeList";
 import { useCollection } from "../hooks/useCollection";
 import { useFilterStore, type CategoryFilter } from "../hooks/useFilterStore";
 
+/** Form controls need their own colours: they do not follow the page's. */
+const CONTROL_COLOURS = "bg-white text-gray-900 dark:bg-neutral-800 dark:text-gray-100";
+
 /** Select values that stand for a filter rather than for a Category name. */
 const ALL = "";
 const UNCATEGORISED = "__bez-kategorie__";
@@ -60,17 +63,19 @@ export function Home() {
                     placeholder="Hledat..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="border rounded px-3 py-1 w-full"
+                    className={`border rounded px-3 py-1 w-full ${CONTROL_COLOURS}`}
                 />
                 <select
                     value={toSelectValue(category)}
                     onChange={(e) => setCategory(fromSelectValue(e.target.value))}
-                    className="border rounded px-3 py-1"
+                    className={`border rounded px-3 py-1 ${CONTROL_COLOURS}`}
                 >
-                    <option value={ALL}>Všechny kategorie</option>
-                    <option value={UNCATEGORISED}>Bez kategorie</option>
+                    {/* The dropdown inherits the page's light text but not its dark
+                        background, so each option carries both colours itself. */}
+                    <option value={ALL} className={CONTROL_COLOURS}>Všechny kategorie</option>
+                    <option value={UNCATEGORISED} className={CONTROL_COLOURS}>Bez kategorie</option>
                     {categoryNames.map((name) => (
-                        <option key={name} value={name}>{name}</option>
+                        <option key={name} value={name} className={CONTROL_COLOURS}>{name}</option>
                     ))}
                 </select>
             </div>
