@@ -42,6 +42,6 @@ Worth knowing:
 - **Category counts come from the curated list**, so a Category holding nothing still appears rather than vanishing until something lands in it.
 - **Picking Categories is a pure function** (`toggleCategory`), tested — including that taking the last one off means show everything, not show nothing.
 
-**Left for the kitchen to judge:** at 375px there is no horizontal scroll, but the 27 Category chips take roughly half the screen before the first recipe. If that gets in the way, collapsing them behind a toggle on narrow screens is the obvious next move.
+**Collapsed on narrow screens.** At 375px the 27 Category chips filled half the screen before the first recipe, so below the `sm` breakpoint they fold behind a `Kategorie: …` toggle that names what is picked — `vše`, `bez kategorie`, or the first two and a count. Four recipes are visible where one was. A wider screen has room and shows the chips as before.
 
 **Regression caught in review:** rewriting `RecipeList` dropped the `PAGE_BUTTON` styling added when the starter CSS was retired, leaving the pager as bare text with no disabled state. Restored, and now shared from `src/components/buttonStyles.ts` with the sort control using it too.
