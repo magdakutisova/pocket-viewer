@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import type { Category, Recipe } from "../domain";
+import type { Category, Recipe, Source } from "../domain";
 
 /** Categories are separated by a pipe; a comma is an ordinary character in a Category name. */
 const CATEGORY_SEPARATOR = "|";
@@ -16,6 +16,8 @@ export interface ParsedExport {
     recipes: Recipe[];
     /** Every Category the collection holds, named once each. */
     categories: Category[];
+    /** Every place the collection's recipes live, named once each. */
+    sources: Source[];
 }
 
 function parseSavedAt(timeAdded: string): Date {
@@ -86,6 +88,78 @@ function decodeSafely(segment: string): string {
     }
 }
 
+function parseHost(url: string): string {
+    try {
+        return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+        // Not an address we can read. The row still imports, under its own name.
+        return url.trim().toLowerCase();
+    }
+}
+
+/**
+ * Google retired `blogspot.cz` in favour of `blogspot.com` partway through nine
+ * years of collecting, so 41 blogs answer to two hosts. Hosts sharing everything
+ * but their last label are candidates for being the same place.
+ */
+function stemOf(host: string): string {
+    return host.split(".").slice(0, -1).join(".");
+}
+
+function tldOf(host: string): string {
+    return host.split(".").slice(-1)[0] ?? "";
+}
+
+/**
+ * Two hosts on one stem are the same place when a country moved: `.cz` and
+ * `.com`. Two generic TLDs on one stem — `.com` and `.org` — are as often two
+ * owners as one, so they stay apart until merged by hand.
+ */
+function isOneBlogUnderTwoFlags(hosts: string[]): boolean {
+    return hosts.some((host) => tldOf(host).length === 2);
+}
+
+/**
+ * Builds the shelf: one Source per place, named after whichever of its hosts
+ * holds the most recipes, deepest shelf entry first.
+ */
+function collectSources(hostOfEachRecipe: string[]): Source[] {
+    const recipesPerHost = new Map<string, number>();
+    for (const host of hostOfEachRecipe) {
+        recipesPerHost.set(host, (recipesPerHost.get(host) ?? 0) + 1);
+    }
+
+    const byReach = (a: string, b: string) => {
+        const difference = (recipesPerHost.get(b) ?? 0) - (recipesPerHost.get(a) ?? 0);
+
+        return difference === 0 ? a.localeCompare(b) : difference;
+    };
+
+    const hostsPerStem = new Map<string, string[]>();
+    for (const host of recipesPerHost.keys()) {
+        const stem = stemOf(host);
+        hostsPerStem.set(stem, [...(hostsPerStem.get(stem) ?? []), host]);
+    }
+
+    const shelf = [...hostsPerStem.values()].flatMap((onOneStem) =>
+        onOneStem.length > 1 && !isOneBlogUnderTwoFlags(onOneStem)
+            ? onOneStem.map((host) => [host])
+            : [onOneStem],
+    );
+
+    return shelf
+        .map((hosts) => {
+            const sorted = [...hosts].sort(byReach);
+            const recipeCount = sorted.reduce(
+                (total, host) => total + (recipesPerHost.get(host) ?? 0),
+                0,
+            );
+
+            return { name: sorted[0], hosts: sorted, recipeCount };
+        })
+        .sort((a, b) => b.recipeCount - a.recipeCount || a.name.localeCompare(b.name));
+}
+
 /** Turns the text of a Pocket export into the Recipes it describes. Pure: no I/O, no network. */
 export function parseExport(csvText: string): ParsedExport {
     const { data } = Papa.parse<ExportRow>(csvText, {
@@ -93,15 +167,21 @@ export function parseExport(csvText: string): ParsedExport {
         skipEmptyLines: true,
     });
 
+    const sources = collectSources(data.map((row) => parseHost(row.url)));
+    const sourceOfHost = new Map(
+        sources.flatMap((source) => source.hosts.map((host) => [host, source.name])),
+    );
+
     const recipes = data.map((row) => ({
         name: parseName(row.title, row.url),
         url: row.url,
         savedAt: parseSavedAt(row.time_added),
         categories: parseCategories(row.tags),
+        source: sourceOfHost.get(parseHost(row.url))!,
     }));
 
     const names = new Set(recipes.flatMap((recipe) => recipe.categories));
     const categories = [...names].map((name) => ({ name }));
 
-    return { recipes, categories };
+    return { recipes, categories, sources };
 }

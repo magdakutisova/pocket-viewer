@@ -1,6 +1,43 @@
 import { RecipeList } from "../components/RecipeList";
+import { SourceList } from "../components/SourceList";
 import { useCollection } from "../hooks/useCollection";
-import { useFilterStore, type CategoryFilter } from "../hooks/useFilterStore";
+import { useFilterStore, type CategoryFilter, type View } from "../hooks/useFilterStore";
+
+interface PageProps {
+    view: View;
+    onChangeView: (view: View) => void;
+    children: React.ReactNode;
+}
+
+/** The chrome both shelves sit in: the title and the two tabs. */
+function Page({ view, onChangeView, children }: PageProps) {
+    return (
+        <div className="max-w-3xl mx-auto p-6">
+            <h1 className="text-2xl font-semibold mb-4">📚 Moje recepty</h1>
+            <Tabs view={view} onChange={onChangeView} />
+            {children}
+        </div>
+    );
+}
+
+function Tabs({ view, onChange }: { view: View; onChange: (view: View) => void }) {
+    return (
+        <div className="flex gap-2 mb-4">
+            <button
+                onClick={() => onChange("recipes")}
+                className={view === "recipes" ? "underline font-semibold" : ""}
+            >
+                Recepty
+            </button>
+            <button
+                onClick={() => onChange("sources")}
+                className={view === "sources" ? "underline font-semibold" : ""}
+            >
+                Zdroje
+            </button>
+        </div>
+    );
+}
 
 /** Form controls need their own colours: they do not follow the page's. */
 const CONTROL_COLOURS = "bg-white text-gray-900 dark:bg-neutral-800 dark:text-gray-100";
@@ -39,23 +76,45 @@ function matchesCategory(recipeCategories: string[], category: CategoryFilter): 
 }
 
 export function Home() {
-    const { recipes, categories } = useCollection();
-    const { category, search, setCategory, setSearch } = useFilterStore();
+    const { recipes, categories, sources } = useCollection();
+    const { view, category, source, search, setView, setCategory, setSource, setSearch } =
+        useFilterStore();
 
     const searchTerm = search.toLowerCase();
     const filtered = recipes.filter((recipe) => {
         const matchesSearch = recipe.name.toLowerCase().includes(searchTerm)
             || recipe.categories.some((name) => name.toLowerCase().includes(searchTerm));
-        return matchesCategory(recipe.categories, category) && matchesSearch;
+        const matchesSource = source === null || recipe.source === source;
+        return matchesCategory(recipe.categories, category) && matchesSearch && matchesSource;
     });
 
     const categoryNames = categories
         .map((category) => category.name)
         .sort((a, b) => a.localeCompare(b, "cs"));
 
+    function browseSource(name: string) {
+        setSource(name);
+        setView("recipes");
+    }
+
+    if (view === "sources") {
+        return (
+            <Page view={view} onChangeView={setView}>
+                <SourceList sources={sources} onSelect={browseSource} />
+            </Page>
+        );
+    }
+
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <h1 className="text-2xl font-semibold mb-4">📚 Moje recepty</h1>
+        <Page view={view} onChangeView={setView}>
+            {source !== null && (
+                <p className="mb-4 text-sm">
+                    Zdroj: <span className="font-semibold">{source}</span>{" "}
+                    <button onClick={() => setSource(null)} className="underline">
+                        zrušit
+                    </button>
+                </p>
+            )}
 
             <div className="flex gap-4 mb-6 items-center">
                 <input
@@ -81,7 +140,7 @@ export function Home() {
             </div>
 
             {/* Keyed on the criteria so changing them starts again at the first page. */}
-            <RecipeList key={`${toSelectValue(category)}|${search}`} recipes={filtered} />
-        </div>
+            <RecipeList key={`${toSelectValue(category)}|${search}|${source}`} recipes={filtered} />
+        </Page>
     );
 }

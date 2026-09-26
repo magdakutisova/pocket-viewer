@@ -171,3 +171,80 @@ describe("recipes Pocket never captured a name for", () => {
         expect(recipes[0].name).toBe("Gordon.ura.cz");
     });
 });
+
+describe("the Sources recipes come from", () => {
+    it("treats a blogspot.cz and blogspot.com pair as the one blog it is", () => {
+        const { sources, recipes } = parseExport(
+            exportOf(
+                "Bábovka,http://hubneme-a-zhubneme.blogspot.cz/babovka.html,1467204139,dezerty,unread",
+                "Koláč,http://hubneme-a-zhubneme.blogspot.cz/kolac.html,1467204139,dezerty,unread",
+                "Buchty,http://hubneme-a-zhubneme.blogspot.com/buchty.html,1467204139,dezerty,unread",
+            ),
+        );
+
+        expect(sources).toHaveLength(1);
+        expect(sources[0].hosts).toEqual([
+            "hubneme-a-zhubneme.blogspot.cz",
+            "hubneme-a-zhubneme.blogspot.com",
+        ]);
+        expect(recipes.map((recipe) => recipe.source)).toEqual([
+            "hubneme-a-zhubneme.blogspot.cz",
+            "hubneme-a-zhubneme.blogspot.cz",
+            "hubneme-a-zhubneme.blogspot.cz",
+        ]);
+    });
+
+    it("leaves two generic domains on one stem as two Sources, which they usually are", () => {
+        const { sources } = parseExport(
+            exportOf(
+                "Bábovka,http://example.com/babovka,1467204139,dezerty,unread",
+                "Koláč,http://example.org/kolac,1467204139,dezerty,unread",
+            ),
+        );
+
+        expect(sources.map((source) => source.name).sort()).toEqual([
+            "example.com",
+            "example.org",
+        ]);
+    });
+
+    it("names the Source after whichever host holds the most recipes", () => {
+        const { sources } = parseExport(
+            exportOf(
+                "Bábovka,http://example.cz/babovka,1467204139,dezerty,unread",
+                "Koláč,http://example.com/kolac,1467204139,dezerty,unread",
+                "Buchty,http://example.com/buchty,1467204139,dezerty,unread",
+            ),
+        );
+
+        expect(sources[0].name).toBe("example.com");
+    });
+
+    it("links every recipe to exactly one Source", () => {
+        const { recipes, sources } = parseExport(
+            exportOf(
+                "Omeleta,https://www.example.com/omeleta,1467204139,snídaně,unread",
+                "Polévka,https://another.example/polevka,1467204139,,unread",
+            ),
+        );
+
+        const names = sources.map((source) => source.name);
+        expect(recipes.every((recipe) => names.includes(recipe.source))).toBe(true);
+        expect(recipes.map((recipe) => recipe.source)).toEqual(["example.com", "another.example"]);
+    });
+
+    it("names one Source per host, lowercased and without its www", () => {
+        const { sources } = parseExport(
+            exportOf(
+                "Omeleta,https://WWW.Example.com/omeleta,1467204139,snídaně,unread",
+                "Salát,https://example.com/salat,1467204139,saláty,unread",
+                "Polévka,https://another.example/polevka,1467204139,polévky,unread",
+            ),
+        );
+
+        expect(sources.map((source) => source.name)).toEqual([
+            "example.com",
+            "another.example",
+        ]);
+    });
+});

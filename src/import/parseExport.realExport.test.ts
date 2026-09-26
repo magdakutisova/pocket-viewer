@@ -9,7 +9,7 @@ const exportText = readFileSync(
     "utf8",
 );
 
-const { recipes, categories } = parseExport(exportText);
+const { recipes, categories, sources } = parseExport(exportText);
 
 /**
  * The numbers below come from the Pocket export itself and are the ones the spec
@@ -86,5 +86,65 @@ describe("the recipes Pocket never named", () => {
         const showingAUrl = recipes.filter((recipe) => /^https?:\/\//i.test(recipe.name));
 
         expect(showingAUrl).toEqual([]);
+    });
+});
+
+describe("the shelf of Sources", () => {
+    it("holds 318 Sources, one per place rather than one per host", () => {
+        const hosts = sources.flatMap((source) => source.hosts);
+
+        expect(new Set(hosts).size).toBe(360);
+        expect(sources).toHaveLength(318);
+    });
+
+    it("collapses the 41 blogspot blogs that answer to two hosts, and sonnentor", () => {
+        const twinned = sources.filter((source) => source.hosts.length > 1);
+        const blogspot = twinned.filter((source) =>
+            source.hosts.every((host) => host.includes(".blogspot.")),
+        );
+
+        // The spec calls these "42 blogspot pairs". 41 of them are blogspot;
+        // the 42nd is sonnentor.cz and sonnentor.com, one shop under two flags.
+        expect(blogspot).toHaveLength(41);
+        expect(twinned).toHaveLength(42);
+        expect(twinned.find((source) => !source.hosts[0].includes(".blogspot."))?.hosts).toEqual([
+            "sonnentor.com",
+            "sonnentor.cz",
+        ]);
+    });
+
+    it("gathers the 1,686 recipes that sit on a twinned host under one Source each", () => {
+        const twinned = sources.filter((source) => source.hosts.length > 1);
+        const namesOfTwinned = new Set(twinned.map((source) => source.name));
+        const onATwinnedHost = recipes.filter((recipe) => namesOfTwinned.has(recipe.source));
+
+        expect(onATwinnedHost).toHaveLength(1686);
+    });
+
+    it("keeps hubneme-a-zhubneme, split 162 and 18, as one blog", () => {
+        const source = sources.find((it) => it.name.startsWith("hubneme-a-zhubneme"));
+
+        expect(source?.hosts).toEqual([
+            "hubneme-a-zhubneme.blogspot.cz",
+            "hubneme-a-zhubneme.blogspot.com",
+        ]);
+        expect(recipes.filter((recipe) => recipe.source === source?.name)).toHaveLength(180);
+    });
+
+    it("opens with the long tail the shelf is known to have: 153 Sources of one recipe", () => {
+        const recipesPerSource = new Map<string, number>();
+        for (const recipe of recipes) {
+            recipesPerSource.set(recipe.source, (recipesPerSource.get(recipe.source) ?? 0) + 1);
+        }
+        const holdingOne = [...recipesPerSource.values()].filter((count) => count === 1);
+
+        expect(holdingOne).toHaveLength(153);
+    });
+
+    it("gives every recipe a Source that is on the shelf", () => {
+        const onTheShelf = new Set(sources.map((source) => source.name));
+        const orphaned = recipes.filter((recipe) => !onTheShelf.has(recipe.source));
+
+        expect(orphaned).toEqual([]);
     });
 });
