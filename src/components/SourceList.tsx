@@ -1,12 +1,5 @@
 import type { Source } from "../domain";
-
-/** Czech counts in three forms: 1 recept, 2 recepty, 5 receptů. */
-function plural(count: number, one: string, few: string, many: string): string {
-    if (count === 1) return `${count} ${one}`;
-    if (count >= 2 && count <= 4) return `${count} ${few}`;
-
-    return `${count} ${many}`;
-}
+import { plural } from "../czech";
 
 interface SourceListProps {
     sources: Source[];

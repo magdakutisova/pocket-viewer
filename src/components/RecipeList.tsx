@@ -1,43 +1,43 @@
 import { RecipeCard } from "./RecipeCard";
-import type { Recipe } from "../domain";
-import { useMemo, useState} from "react";
+import { PAGE_BUTTON } from "./buttonStyles";
+import type { BrowseResult } from "../browse/browse";
+import { plural } from "../czech";
 
-/**
- * The pager buttons carry their own look. Nothing styles a bare <button> any
- * more — Preflight strips it back, and the starter rule that used to dress
- * every button in the app is gone.
- */
-const PAGE_BUTTON = "rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 font-medium "
-    + "hover:border-blue-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800";
+interface RecipeListProps {
+    result: BrowseResult;
+    onPage: (page: number) => void;
+}
 
-export function RecipeList({ recipes }: { recipes: Recipe[] }) {
-    const RECIPES_PER_PAGE = 20;
-    const [page, setPage] = useState(1);
-
-    const recipesOnPage = useMemo(() => {
-        const start = (page - 1) * RECIPES_PER_PAGE;
-
-        return recipes.slice(start, start + RECIPES_PER_PAGE);
-    }, [recipes, page]);
+export function RecipeList({ result, onPage }: RecipeListProps) {
+    const { recipes, total, page, pageCount } = result;
 
     return (
         <div>
-            {recipesOnPage.map((recipe) => (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                {plural(total, "recept", "recepty", "receptů")}
+            </p>
+
+            {recipes.map((recipe) => (
                 <RecipeCard key={recipe.url} recipe={recipe} />
             ))}
 
-            <div className="flex gap-2 mt-4">
+            {total === 0 && <p className="text-sm">Nic nenalezeno.</p>}
+
+            <div className="flex gap-2 mt-4 items-center">
                 <button
                     className={PAGE_BUTTON}
                     disabled={page === 1}
-                    onClick={() => setPage(page => page - 1)}
+                    onClick={() => onPage(page - 1)}
                 >
                     Předchozí
                 </button>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {page} / {pageCount}
+                </span>
                 <button
                     className={PAGE_BUTTON}
-                    disabled={(page * RECIPES_PER_PAGE) >= recipes.length}
-                    onClick={() => setPage(page => page + 1)}
+                    disabled={page >= pageCount}
+                    onClick={() => onPage(page + 1)}
                 >
                     Další
                 </button>
