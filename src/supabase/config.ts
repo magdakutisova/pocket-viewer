@@ -33,6 +33,8 @@ export function readSupabaseConfig(env: Record<string, unknown>): SupabaseConfig
         );
     }
 
+    const origin = originOf(url!);
+
     if (looksLikeASecret(anonKey!)) {
         throw new Error(
             `${ANON_KEY_VAR} looks like a secret (service-role) key. That key bypasses row-level security and must never ` +
@@ -40,7 +42,38 @@ export function readSupabaseConfig(env: Record<string, unknown>): SupabaseConfig
         );
     }
 
-    return { url: url!, anonKey: anonKey! };
+    return { url: origin, anonKey: anonKey! };
+}
+
+/**
+ * The project URL is an origin and nothing more — supabase-js appends
+ * `/auth/v1/...` and `/rest/v1/...` to it itself.
+ *
+ * The Data API endpoint sits next to it in the dashboard and is easy to copy
+ * instead. Left alone it produces `/rest/v1/auth/v1/token`, which PostgREST
+ * answers with PGRST125 — an error that surfaces as a failed login and looks
+ * nothing like a configuration fault.
+ */
+function originOf(url: string): string {
+    let parsed: URL;
+    try {
+        parsed = new URL(url);
+    } catch {
+        throw new Error(
+            `${URL_VAR} is not a URL: ${url}. It should be your project URL, like ` +
+                `https://your-project-ref.supabase.co — see docs/supabase-setup.md.`,
+        );
+    }
+
+    if (parsed.pathname !== "/" || parsed.search !== "" || parsed.hash !== "") {
+        throw new Error(
+            `${URL_VAR} should be the project URL — an origin with no path — but carries ` +
+                `"${parsed.pathname}${parsed.search}${parsed.hash}". Use ${parsed.origin} instead. ` +
+                `(The dashboard's Data API endpoint ends in /rest/v1; that is a different thing.)`,
+        );
+    }
+
+    return parsed.origin;
 }
 
 /** Vite's env object carries booleans too, so a non-string reads as absent. */

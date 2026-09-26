@@ -23,7 +23,15 @@ export function LoginPage() {
 
             // On success the session arrives through useSession, which swaps
             // this page for the collection — nothing to do here but stop.
-            if (error) setError(reasonForFailedSignIn(error.status));
+            if (error) {
+                setError(
+                    reasonForFailedSignIn({
+                        status: error.status,
+                        code: error.code,
+                        message: error.message,
+                    }),
+                );
+            }
         } catch {
             // A rejected request must still give the button back, or a dropped
             // connection leaves it saying "Přihlašuji…" forever.

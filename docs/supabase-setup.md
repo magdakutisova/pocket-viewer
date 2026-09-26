@@ -40,7 +40,13 @@ sign up** off. Nobody else is ever meant to have an account here.
 ## 4. Point the app at it
 
 From **Project Settings → API**, copy the project URL and the **publishable**
-(`anon`) key:
+(`anon`) key.
+
+Take the **Project URL** — the bare origin, `https://your-project-ref.supabase.co`.
+The **Data API** endpoint shown near it ends in `/rest/v1`, and is a different
+thing: the client appends its own paths, so that one sends every login to
+`/rest/v1/auth/v1/token` and fails with a PostgREST `PGRST125` error. The app
+refuses to start on a URL carrying a path, and names the origin to use instead.
 
 ```bash
 cp .env.example .env.local

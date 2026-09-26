@@ -51,6 +51,36 @@ describe("reading Supabase credentials from environment configuration", () => {
         );
     });
 
+    it("rejects the Data API endpoint, which is not the project url", () => {
+        // Easy to copy from the dashboard by mistake. supabase-js appends its
+        // own paths, so this sends every auth call to /rest/v1/auth/v1/... and
+        // PostgREST answers PGRST125 — which looks nothing like a config fault.
+        expect(() =>
+            readSupabaseConfig({
+                VITE_SUPABASE_URL: "https://abcdefgh.supabase.co/rest/v1/",
+                VITE_SUPABASE_ANON_KEY: "a-publishable-key",
+            }),
+        ).toThrowError(/rest\/v1|path/i);
+    });
+
+    it("accepts a project url written with a trailing slash", () => {
+        const config = readSupabaseConfig({
+            VITE_SUPABASE_URL: "https://abcdefgh.supabase.co/",
+            VITE_SUPABASE_ANON_KEY: "a-publishable-key",
+        });
+
+        expect(config.url).toBe("https://abcdefgh.supabase.co");
+    });
+
+    it("rejects something that is not a url at all", () => {
+        expect(() =>
+            readSupabaseConfig({
+                VITE_SUPABASE_URL: "your-project-ref",
+                VITE_SUPABASE_ANON_KEY: "a-publishable-key",
+            }),
+        ).toThrowError(/VITE_SUPABASE_URL/);
+    });
+
     it("rejects a service-role key, which must never reach the browser", () => {
         expect(() =>
             readSupabaseConfig({
