@@ -13,7 +13,7 @@ function App() {
     case "misconfigured":
       return (
         <FullPage>
-          <span className="text-red-700">{session.message}</span>
+          <span className="text-red-700 dark:text-red-400">{session.message}</span>
         </FullPage>
       );
 

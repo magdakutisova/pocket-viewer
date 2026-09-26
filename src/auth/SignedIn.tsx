@@ -13,7 +13,7 @@ export function SignedIn({ email, children }: { email: string | undefined; child
                 <button
                     type="button"
                     onClick={() => void supabase().auth.signOut()}
-                    className="underline !bg-transparent !p-0"
+                    className="underline"
                 >
                     Odhlásit se
                 </button>

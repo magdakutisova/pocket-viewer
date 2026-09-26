@@ -41,13 +41,10 @@ export function LoginPage() {
         }
     }
 
-    // The `!` utilities below outrank the unlayered Vite starter rules still in
-    // src/index.css (`body{display:flex}`, `h1{font-size:3.2em}`,
-    // `button{background}`), which otherwise beat Tailwind's layered utilities.
     return (
         <div className="w-full min-h-screen flex items-center justify-center p-6">
             <form onSubmit={signIn} className="w-full max-w-sm">
-                <h1 className="!text-2xl font-semibold mb-1">📚 Moje recepty</h1>
+                <h1 className="text-2xl font-semibold mb-1">📚 Moje recepty</h1>
                 <p className="text-sm opacity-70 mb-6">Přihlaste se ke své sbírce.</p>
 
                 <label className="block mb-3">
@@ -83,7 +80,7 @@ export function LoginPage() {
                 <button
                     type="submit"
                     disabled={signingIn}
-                    className="w-full rounded !bg-blue-600 text-white px-3 py-2 disabled:opacity-50"
+                    className="w-full rounded bg-blue-600 text-white px-3 py-2 disabled:opacity-50"
                 >
                     {signingIn ? "Přihlašuji…" : "Přihlásit se"}
                 </button>
