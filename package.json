@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "seed": "node --env-file=.env.local scripts/seed.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

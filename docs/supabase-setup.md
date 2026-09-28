@@ -87,3 +87,53 @@ The database is empty. Filling it is [ticket 06](../.scratch/recipe-index/issues
 and the app reading from it rather than from the bundled CSV is
 [ticket 07](../.scratch/recipe-index/issues/07-read-collection-from-supabase.md).
 Until then the collection on screen still comes from `src/data/pocket.csv`.
+
+## Seeding the collection
+
+The database starts empty. One command fills it from the bundled Pocket export:
+
+```bash
+npm run seed
+```
+
+It needs one more credential first. From **Project Settings → API**, copy the
+**`service_role`** key into `.env.local`:
+
+```
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+That key bypasses row-level security, which is exactly why the seed can write
+rows on your behalf and exactly why it is a real secret. It must **not** carry a
+`VITE_` prefix — anything so prefixed is compiled into the browser bundle for
+anyone to read. `.env.local` is git-ignored; delete the line once seeded.
+
+The script writes every row against your user, found automatically as the only
+user in the project. If you ever add another, set `SEED_OWNER_EMAIL` to say
+whose collection it is.
+
+### What to check
+
+The summary prints what it did. Against nine years of collecting it should read
+roughly:
+
+| | |
+| --- | --- |
+| Recipes | 3357 |
+| Categories | 27 |
+| Sources | 318 |
+| Recipe–Category links | 3835 |
+| Names derived from URLs | 603 |
+| TLD twins collapsed | 42 |
+
+This is the moment to catch a silent transform bug, before the result becomes
+the thing you rely on. The numbers that matter most are the last two: a wrong
+slug rule still produces names, and a wrong twin rule still produces a shelf —
+neither looks broken on screen.
+
+**Run it twice.** The second run must add nothing. The script upserts on what
+makes a row unique to you, so re-running after correcting the transform updates
+the collection rather than doubling it.
+
+It deliberately leaves `tried`, `favourite` and `deleted_at` alone on a re-run,
+so re-importing can never quietly undo what you have cooked or thrown away.

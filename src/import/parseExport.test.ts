@@ -272,3 +272,37 @@ describe("names that arrived HTML-escaped", () => {
         expect(recipes[0].name).toBe('Recept &quot;A&quot;');
     });
 });
+
+describe("what the Import reports about itself", () => {
+    it("counts the recipes it had to name, so a wrong rule is visible in the summary", () => {
+        const { summary } = parseExport(
+            exportOf(
+                "Vánočka,https://example.com/vanocka,1467204139,dezerty,unread",
+                "https://example.com/svickova,https://example.com/svickova,1467204139,,unread",
+                "https://example.com/gulas,https://example.com/gulas,1467204139,,unread",
+            ),
+        );
+
+        expect(summary.namesDerived).toBe(2);
+    });
+
+    it("counts the Sources it collapsed, so a shelf listing blogs twice is visible too", () => {
+        const { summary } = parseExport(
+            exportOf(
+                "Buchty,https://kucharka.blogspot.cz/buchty,1467204139,,unread",
+                "Koláče,https://kucharka.blogspot.com/kolace,1467204139,,unread",
+                "Guláš,https://jinyblog.cz/gulas,1467204139,,unread",
+            ),
+        );
+
+        expect(summary.twinsCollapsed).toBe(1);
+    });
+
+    it("reports nothing derived or collapsed when there was nothing to do", () => {
+        const { summary } = parseExport(
+            exportOf("Vánočka,https://example.com/vanocka,1467204139,dezerty,unread"),
+        );
+
+        expect(summary).toEqual({ namesDerived: 0, twinsCollapsed: 0 });
+    });
+});

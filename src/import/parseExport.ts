@@ -18,6 +18,22 @@ export interface ParsedExport {
     categories: Category[];
     /** Every place the collection's recipes live, named once each. */
     sources: Source[];
+    /** What the Import did to the collection on the way in. */
+    summary: ImportSummary;
+}
+
+/**
+ * The two repairs the Import makes that cannot be seen by counting the result.
+ *
+ * Both fail silently when their rule is wrong — a bad slug rule still produces a
+ * name, and a bad twin rule still produces a shelf — so the numbers are printed
+ * and checked against what the export is known to hold.
+ */
+export interface ImportSummary {
+    /** Recipes Pocket never captured a title for, named from their URL instead. */
+    namesDerived: number;
+    /** Sources answering to more than one host: the TLD twins, collapsed into one. */
+    twinsCollapsed: number;
 }
 
 function parseSavedAt(timeAdded: string): Date {
@@ -205,5 +221,10 @@ export function parseExport(csvText: string): ParsedExport {
     const names = new Set(recipes.flatMap((recipe) => recipe.categories));
     const categories = [...names].map((name) => ({ name }));
 
-    return { recipes, categories, sources };
+    const summary = {
+        namesDerived: data.filter((row) => row.title === row.url).length,
+        twinsCollapsed: sources.filter((source) => source.hosts.length > 1).length,
+    };
+
+    return { recipes, categories, sources, summary };
 }
