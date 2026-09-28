@@ -47,6 +47,7 @@ async function main(): Promise<void> {
     })));
 
     const sourceIdByHost = await idsBy(db, "source", "primary_host", ownerId);
+    resolve(sources, (source) => source.hosts[0], sourceIdByHost, "Sources");
 
     await upsert(db, "source_host", "owner_id,host", sources.flatMap((source) =>
         source.hosts.map((host) => ({
@@ -62,6 +63,7 @@ async function main(): Promise<void> {
     })));
 
     const categoryIdByName = await idsBy(db, "category", "name", ownerId);
+    resolve(categories, (category) => category.name, categoryIdByName, "Categories");
 
     // A Recipe's Source is carried as its display name; resolve that back to the
     // host the row is keyed by, rather than assuming the two are the same string.
@@ -79,6 +81,7 @@ async function main(): Promise<void> {
     })));
 
     const recipeIdByUrl = await idsBy(db, "recipe", "url", ownerId);
+    resolve(recipes, (recipe) => recipe.url, recipeIdByUrl, "Recipes");
 
     await upsert(db, "recipe_category", "recipe_id,category_id", recipes.flatMap((recipe) =>
         recipe.categories.map((name) => ({
@@ -167,10 +170,14 @@ async function idsBy(
 
     // Supabase caps a single select, so walk it rather than trusting one page.
     for (let from = 0; ; from += 1000) {
+        // Ordered, because pagination over an unordered select is not stable:
+        // Postgres promises no row order, and an upsert rewrites rows and moves
+        // them, so a second run's pages would overlap and drop ids on the floor.
         const { data, error } = await db
             .from(table)
             .select("*")
             .eq("owner_id", ownerId)
+            .order("id", { ascending: true })
             .range(from, from + 999);
 
         if (error) throw new Error(`Reading ${table} back failed: ${error.message}`);
@@ -178,6 +185,23 @@ async function idsBy(
         const rows: Record<string, string>[] = data;
         for (const row of rows) found.set(row[key], row.id);
         if (rows.length < 1000) return found;
+    }
+}
+
+/**
+ * Every row the transform produced must have come back with an id.
+ *
+ * Without this a gap arrives at Postgres as a not-null violation naming a
+ * column, which says nothing about which recipe went missing or why.
+ */
+function resolve<T>(items: T[], keyOf: (item: T) => string, ids: Map<string, string>, what: string): void {
+    const missing = items.filter((item) => !ids.has(keyOf(item)));
+
+    if (missing.length > 0) {
+        throw new Error(
+            `${missing.length} of ${items.length} ${what} came back without an id — ` +
+                `first missing: ${keyOf(missing[0])}. The collection was not fully written.`,
+        );
     }
 }
 
