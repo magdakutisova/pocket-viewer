@@ -20,6 +20,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { parseExport } from "../src/import/parseExport.ts";
+import { isSecretKey } from "../src/supabase/keys.ts";
 
 /** Postgres takes these comfortably in one request; 3,357 recipes is 7 of them. */
 const CHUNK = 500;
@@ -99,6 +100,17 @@ function connect(): SupabaseClient {
             "The seed needs SUPABASE_URL (or VITE_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY in " +
                 ".env.local. The service-role key is a secret: it must never carry a VITE_ prefix, " +
                 "which would compile it into the browser bundle. See docs/supabase-setup.md.",
+        );
+    }
+
+    // Checked here rather than left to fail at the first admin call, which
+    // reports only "User not allowed" and says nothing about which key is wrong.
+    if (!isSecretKey(key)) {
+        throw new Error(
+            "SUPABASE_SERVICE_ROLE_KEY is not a secret key — it grants no more than the browser " +
+                "already has, so the seed cannot write. Take the secret key from Project Settings " +
+                "-> API Keys (it starts `sb_secret_`), or the legacy `service_role` JWT. The " +
+                "publishable key and the legacy `anon` JWT are the ones that will not work.",
         );
     }
 
@@ -210,4 +222,14 @@ function report(
     );
 }
 
-await main();
+try {
+    await main();
+} catch (error) {
+    // A seed that fails should say why in one line, not bury it in a stack.
+    console.error(`\nThe import did not run.\n\n  ${messageOf(error)}\n`);
+    process.exit(1);
+}
+
+function messageOf(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}

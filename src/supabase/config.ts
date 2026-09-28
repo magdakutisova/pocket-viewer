@@ -1,3 +1,5 @@
+import { isSecretKey } from "./keys";
+
 /** The credentials the browser needs to reach the Supabase project. */
 export interface SupabaseConfig {
     url: string;
@@ -35,7 +37,7 @@ export function readSupabaseConfig(env: Record<string, unknown>): SupabaseConfig
 
     const origin = originOf(url!);
 
-    if (looksLikeASecret(anonKey!)) {
+    if (isSecretKey(anonKey!)) {
         throw new Error(
             `${ANON_KEY_VAR} looks like a secret (service-role) key. That key bypasses row-level security and must never ` +
                 `be built into the browser bundle. Use the project's publishable key instead.`,
@@ -80,8 +82,4 @@ function originOf(url: string): string {
 function textAt(env: Record<string, unknown>, name: string): string | undefined {
     const value = env[name];
     return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
-}
-
-function looksLikeASecret(key: string): boolean {
-    return key.startsWith("sb_secret_") || key.includes("service_role");
 }
