@@ -28,6 +28,12 @@ It creates `source`, `source_host`, `category`, `recipe` and `recipe_category`,
 turns on row-level security for every one of them, and installs the constraint
 that makes a Favourite that is not Tried impossible to store.
 
+### Later migrations
+
+Each file in `supabase/migrations/` runs the same way, in order. `0002` adds the
+`collection()` function the app reads through; without it the app loads but
+reports that it could not fetch the collection.
+
 ## 3. Create your user
 
 This index has exactly one person in it. Under **Authentication → Users**, choose

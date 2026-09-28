@@ -5,10 +5,14 @@ import { CategoryFilters } from "../components/CategoryFilters";
 import { RecipeList } from "../components/RecipeList";
 import { SourceList } from "../components/SourceList";
 import { useCollection } from "../hooks/useCollection";
+import type { Collection } from "../supabase/collection";
 import { useFilterStore, type View } from "../hooks/useFilterStore";
 
 /** Form controls need their own colours: they do not follow the page's. */
 const CONTROL_COLOURS = "bg-white text-gray-900 dark:bg-neutral-800 dark:text-gray-100";
+
+/** One instance, so that browsing is not recomputed on every render while loading. */
+const NOTHING_YET: Collection = { recipes: [], categories: [], sources: [] };
 
 const SORT_LABELS: Record<SortField, string> = {
     savedAt: "Datum uložení",
@@ -54,7 +58,12 @@ function Tabs({ view, onChange }: { view: View; onChange: (view: View) => void }
 }
 
 export function Home() {
-    const { recipes, categories: curatedCategories, sources } = useCollection();
+    const state = useCollection();
+
+    // Hooks cannot sit behind a return, so browsing is computed over whatever is
+    // here — the empty collection while loading — and the screen chosen after.
+    const { recipes, categories: curatedCategories, sources } =
+        state.status === "ready" ? state.collection : NOTHING_YET;
     const {
         view,
         categories,
@@ -86,6 +95,25 @@ export function Home() {
     function browseSource(primaryHost: string) {
         setSource(primaryHost);
         setView("recipes");
+    }
+
+    if (state.status === "loading") {
+        return (
+            <Page view={view} onChangeView={setView}>
+                <p className="text-sm opacity-70">Načítám sbírku…</p>
+            </Page>
+        );
+    }
+
+    if (state.status === "failed") {
+        return (
+            <Page view={view} onChangeView={setView}>
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                    Sbírku se nepodařilo načíst.
+                </p>
+                <p className="text-sm opacity-70 mt-2">{state.message}</p>
+            </Page>
+        );
     }
 
     if (view === "sources") {

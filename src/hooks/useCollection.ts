@@ -1,16 +1,49 @@
-import exportText from "../data/pocket.csv?raw";
-import { parseExport, type ParsedExport } from "../import/parseExport";
+import { useEffect, useState } from "react";
+import { toCollection, type Collection } from "../supabase/collection";
+import { supabase } from "../supabase/client";
 
-let collection: ParsedExport | undefined;
+export type CollectionState =
+    | { status: "loading" }
+    | { status: "ready"; collection: Collection }
+    /** Said out loud, because an empty collection and a failed read look alike. */
+    | { status: "failed"; message: string };
 
 /**
- * The bundled Pocket export, parsed once and held in memory.
+ * The collection, fetched once when the app loads and then held in memory.
  *
- * This is the seam the collection later arrives through from Supabase; the
- * screens above it do not know where it came from.
+ * One query: `public.collection()` returns the whole thing as a single row of
+ * JSON. Everything a cook does to it afterwards — filter, search, sort, page —
+ * runs over what is already here, so browsing stays instant on a slow kitchen
+ * connection and the database is not consulted on every keystroke.
  */
-export function useCollection(): ParsedExport {
-    collection ??= parseExport(exportText);
+export function useCollection(): CollectionState {
+    const [state, setState] = useState<CollectionState>({ status: "loading" });
 
-    return collection;
+    useEffect(() => {
+        let current = true;
+
+        void (async () => {
+            try {
+                const { data, error } = await supabase().rpc("collection");
+                if (error) throw error;
+
+                const collection = toCollection(data);
+                if (current) setState({ status: "ready", collection });
+            } catch (error) {
+                if (current) setState({ status: "failed", message: messageOf(error) });
+            }
+        })();
+
+        // The collection outlives a re-render but not a sign-out; ignoring a
+        // late reply keeps it from arriving after the session it belongs to.
+        return () => {
+            current = false;
+        };
+    }, []);
+
+    return state;
+}
+
+function messageOf(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
 }
