@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toCollection, type Collection } from "../supabase/collection";
 import { supabase } from "../supabase/client";
+import { describeFailure } from "../supabase/failure";
 
 export type CollectionState =
     | { status: "loading" }
@@ -16,6 +17,28 @@ export type CollectionState =
  * runs over what is already here, so browsing stays instant on a slow kitchen
  * connection and the database is not consulted on every keystroke.
  */
+/**
+ * The fetch in flight, shared by everyone who asks while it is still going.
+ *
+ * React mounts an effect twice in development, and both a remount and a second
+ * reader would otherwise each fetch the whole collection. Cleared once it
+ * settles, so a genuine later remount gets fresh data rather than this one.
+ */
+let inFlight: Promise<Collection> | null = null;
+
+function fetchCollection(): Promise<Collection> {
+    inFlight ??= (async () => {
+        const { data, error } = await supabase().rpc("collection");
+        if (error) throw error;
+
+        return toCollection(data);
+    })().finally(() => {
+        inFlight = null;
+    });
+
+    return inFlight;
+}
+
 export function useCollection(): CollectionState {
     const [state, setState] = useState<CollectionState>({ status: "loading" });
 
@@ -24,13 +47,10 @@ export function useCollection(): CollectionState {
 
         void (async () => {
             try {
-                const { data, error } = await supabase().rpc("collection");
-                if (error) throw error;
-
-                const collection = toCollection(data);
+                const collection = await fetchCollection();
                 if (current) setState({ status: "ready", collection });
             } catch (error) {
-                if (current) setState({ status: "failed", message: messageOf(error) });
+                if (current) setState({ status: "failed", message: describeFailure(error) });
             }
         })();
 
@@ -44,6 +64,3 @@ export function useCollection(): CollectionState {
     return state;
 }
 
-function messageOf(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
